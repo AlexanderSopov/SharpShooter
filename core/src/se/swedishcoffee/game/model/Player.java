@@ -13,7 +13,7 @@ public class Player extends Entity {
     private Controller controller;
 
     //Constants
-    private static final float JUMPSPEED = 30;
+    private static final float JUMPSPEED = 50;
     private static final float WALKSPEED = 30;
     private static final float POWERSPEED = 2.2f;
 
@@ -21,14 +21,13 @@ public class Player extends Entity {
     //flags
     private float powerSpeed = 1;
     private float jumpingTimer = 0;
-    private boolean jumping = false;
-    private boolean ducking = false;
+    private Jump jumping = Jump.GROUNDED;
     private boolean moveLeft = false;
     private boolean moveRight = false;
 
 
     public Player(){
-        this(30, 30, 5, 10);
+        this(30, 10, 5, 10);
     }
 
     public Player(float x, float y, float width, float height){
@@ -45,14 +44,17 @@ public class Player extends Entity {
 
     //update
     public void update(float delta){
-        updateMotion();
+        updateMotion(delta);
         Vector2 tempVel = new Vector2(velocity);
         position.add(tempVel.scl(delta));
 
 
     }
 
-    private void updateMotion() {
+    private void updateMotion(float delta) {
+
+
+        // Left/right movement
         if (moveLeft)
             velocity.x= -WALKSPEED*powerSpeed;
         else if (moveRight)
@@ -61,20 +63,36 @@ public class Player extends Entity {
             velocity.x = 0;
 
 
-        if (jumping)
-            velocity.y= JUMPSPEED*powerSpeed;
-        else if (ducking)
-            velocity.y = -JUMPSPEED*powerSpeed;
-        else
-            velocity.y = 0;
+        //jump mechanics
+        if (jumping == Jump.JUMPING) {
+            System.out.println("character is " + jumping);
+            jumpingTimer += delta;
+            velocity.y = jumpFunction();
+
+            if (jumpingTimer > 0.5) {
+                jumping = Jump.FALLING;
+                System.out.println("Maxed out jumping, now " + jumping);
+                jumpingTimer = 0;
+            }
+        }
+        if (jumping == Jump.FALLING)
+            temporaryFallingFunction();
+
+        checkForCollisions();
+    }
+
+    private void checkForCollisions() {
+
     }
 
 
     @Override
     public void render(float delta, ShapeRenderer renderer) {
         update(delta);
-        renderer.rect(position.x,position.y,size.x,size.y);
+        renderer.rect(position.x, position.y, size.x, size.y);
     }
+
+
 
 
 
@@ -87,30 +105,14 @@ public class Player extends Entity {
     @Override
     public void moveRight(boolean pressed) {
         moveRight = pressed;
-
-
-    }
-
-    @Override
-    public void jump(boolean active) {
-
-        jumping = active;
-
-        /*
-        if (jumping) {
-            if (jumpingTimer < 1)
-                velocity.y = jumpFunction();
-        }else
-            jumping = true;*/
-    }
-
-    private float jumpFunction() {
-        return JUMPSPEED * (float)Math.sin(jumpingTimer/4);
     }
 
     @Override
     public void duck(boolean active) {
-        ducking = active;
+        if (active)
+            size.y /=2;
+        else
+            size.y *=2;
     }
 
     @Override
@@ -138,6 +140,36 @@ public class Player extends Entity {
     }
 
 
+    @Override
+    public void jump(boolean active) {
+        if (active)
+            if(jumping == Jump.GROUNDED)
+                jumping = Jump.JUMPING;
+        if (!active)
+            if (jumping == Jump.JUMPING) {
+                jumping = Jump.FALLING;
+                jumpingTimer = 0;
+                System.out.println("Released W, now character is " + jumping);
+            }
+    }
 
+    private float jumpFunction() {
+        return JUMPSPEED * (1+Math.abs(velocity.x)*0.01f) *(float)Math.sin(0.5+(jumpingTimer*3.14)/3);
+    }
+
+
+    private void temporaryFallingFunction() {
+        velocity.y -= 5;
+        if (position.y < 10){
+            position.y = 10;
+            jumping = Jump.GROUNDED;
+            velocity.y=0;
+            System.out.println("Landed, character is now " + jumping);
+        }
+    }
+
+    private enum Jump {
+        GROUNDED, JUMPING, FALLING
+    }
 
 }

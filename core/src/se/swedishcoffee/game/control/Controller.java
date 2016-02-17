@@ -30,7 +30,6 @@ public class Controller extends InputAdapter
 
         switch(keycode){
             case Keys.W:
-                //System.out.println("got here");
                 player.jump(true);
                 break;
             case Keys.S:
