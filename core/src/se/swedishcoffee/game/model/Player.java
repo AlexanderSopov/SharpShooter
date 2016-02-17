@@ -1,5 +1,7 @@
 package se.swedishcoffee.game.model;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
 import se.swedishcoffee.game.control.Controller;
@@ -11,16 +13,22 @@ public class Player extends Entity {
     private Controller controller;
 
     //Constants
-    private static final float WALKSPEED = 10;
-    private static final float POWERSPEED = 3;
+    private static final float JUMPSPEED = 30;
+    private static final float WALKSPEED = 30;
+    private static final float POWERSPEED = 2.2f;
 
 
     //flags
     private float powerSpeed = 1;
+    private float jumpingTimer = 0;
+    private boolean jumping = false;
+    private boolean ducking = false;
+    private boolean moveLeft = false;
+    private boolean moveRight = false;
 
 
     public Player(){
-        this(0, 0, 10, 10);
+        this(30, 30, 5, 10);
     }
 
     public Player(float x, float y, float width, float height){
@@ -30,31 +38,79 @@ public class Player extends Entity {
     public Player(Vector2 position, Vector2 size){
         super(position, size);
         controller = new Controller(this);
-
-
+        Gdx.input.setInputProcessor(controller);
     }
 
 
 
+    //update
+    public void update(float delta){
+        updateMotion();
+        Vector2 tempVel = new Vector2(velocity);
+        position.add(tempVel.scl(delta));
 
-    @Override
-    public void moveLeft() {
-        velocity.x= -WALKSPEED*powerSpeed;
-    }
-
-    @Override
-    public void moveRight() {
 
     }
 
+    private void updateMotion() {
+        if (moveLeft)
+            velocity.x= -WALKSPEED*powerSpeed;
+        else if (moveRight)
+            velocity.x = WALKSPEED*powerSpeed;
+        else
+            velocity.x = 0;
+
+
+        if (jumping)
+            velocity.y= JUMPSPEED*powerSpeed;
+        else if (ducking)
+            velocity.y = -JUMPSPEED*powerSpeed;
+        else
+            velocity.y = 0;
+    }
+
+
     @Override
-    public void jump() {
+    public void render(float delta, ShapeRenderer renderer) {
+        update(delta);
+        renderer.rect(position.x,position.y,size.x,size.y);
+    }
+
+
+
+    //Movements
+    @Override
+    public void moveLeft(boolean pressed) {
+        moveLeft = pressed;
+    }
+
+    @Override
+    public void moveRight(boolean pressed) {
+        moveRight = pressed;
+
 
     }
 
     @Override
-    public void duck() {
+    public void jump(boolean active) {
 
+        jumping = active;
+
+        /*
+        if (jumping) {
+            if (jumpingTimer < 1)
+                velocity.y = jumpFunction();
+        }else
+            jumping = true;*/
+    }
+
+    private float jumpFunction() {
+        return JUMPSPEED * (float)Math.sin(jumpingTimer/4);
+    }
+
+    @Override
+    public void duck(boolean active) {
+        ducking = active;
     }
 
     @Override
@@ -69,9 +125,19 @@ public class Player extends Entity {
 
     @Override
     public void powerSpeed(boolean on) {
-        if (on)
-            powerSpeed=POWERSPEED;
-        else
-            powerSpeed=1;
+        if (on){
+            powerSpeed = POWERSPEED;
+            velocity.x *= POWERSPEED;
+        }
+        else {
+            velocity.x /= POWERSPEED;
+            powerSpeed = 1;
+        }
+
+
     }
+
+
+
+
 }

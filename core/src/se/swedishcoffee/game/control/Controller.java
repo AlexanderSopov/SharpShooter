@@ -20,24 +20,49 @@ public class Controller extends InputAdapter
     public boolean keyDown (int keycode) {
         switch (keycode){
             case Keys.A:
-                player.moveLeft();
+                player.moveLeft(true);
                 break;
             case Keys.D:
-                player.moveLeft();
+                player.moveRight(true);
                 break;
+        }
+
+
+        switch(keycode){
             case Keys.W:
-                player.jump();
+                //System.out.println("got here");
+                player.jump(true);
                 break;
             case Keys.S:
-                player.duck();
-
+                player.duck(true);
+                break;
         }
+
+
+        if (keycode == Keys.SPACE)
+            player.powerSpeed(true);
 
         return true;
     }
 
     @Override
     public boolean keyUp (int keycode) {
+        switch(keycode){
+            case Keys.W:
+                player.jump(false);
+                break;
+            case Keys.A:
+                player.moveLeft(false);
+                break;
+            case Keys.D:
+                player.moveRight(false);
+                break;
+            case Keys.S:
+                player.duck(false);
+                break;
+            case Keys.SPACE:
+                player.powerSpeed(false);
+        }
         return true;
     }
 
