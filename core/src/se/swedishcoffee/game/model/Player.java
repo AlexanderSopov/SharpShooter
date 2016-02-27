@@ -30,7 +30,7 @@ public class Player extends Actor {
     private Jump jumpState = Jump.GROUNDED;
     private boolean moveLeft = false;
     private boolean moveRight = false;
-    Body body;
+    private Body body;
 
 
     /*
@@ -105,15 +105,10 @@ public class Player extends Actor {
 
     private void updateVelocity(float delta) {
         // Left/right movement
-<<<<<<< HEAD
         if (moveRight && moveLeft && jumpState == Jump.GROUNDED)
-            velocity.x = 0;
+            body.setLinearVelocity(0, body.getLinearVelocity().y);
         else if (moveLeft)
-            velocity.x= -WALKSPEED*powerSpeed;
-=======
-        if (moveLeft) 
             body.applyForceToCenter(-WALKSPEED * powerSpeed, 0, true);
->>>>>>> 8872e01441e5c94cf504a7698e2230fcf0649f38
         else if (moveRight)
             body.applyForceToCenter(WALKSPEED*powerSpeed, 0, true);
         else
@@ -123,24 +118,14 @@ public class Player extends Actor {
 
 
         //jump mechanics
-<<<<<<< HEAD
-        if (jumpState == Jump.JUMPING) {
-            //System.out.println("character is " + jumpState);
-            jumpingTimer += delta;
-            velocity.y = jumpFunction();
 
-            if (jumpingTimer > 0.4) {
-                jumpState = Jump.FALLING;
-                //System.out.println("Maxed out jumpState, now " + jumpState);
-=======
-        if (jumping == Jump.JUMPING) {
+        if (jumpState == Jump.JUMPING) {
             //System.out.println("character is " + jumping);
             jumpingTimer += delta;
             body.applyForceToCenter(0, jumpFunction(),true);
             if (jumpingTimer > 0.5) {
-                jumping = Jump.FALLING;
+                jumpState = Jump.FALLING;
                 //System.out.println("Maxed out jumping, now " + jumping);
->>>>>>> 8872e01441e5c94cf504a7698e2230fcf0649f38
                 jumpingTimer = 0;
             }
         }
@@ -228,17 +213,10 @@ public class Player extends Actor {
     private void temporaryFallingFunction() {
         //velocity.y -= 5;
         if (position.y < 10){
-<<<<<<< HEAD
-            position.y = 10;
+            body.applyForceToCenter(0, 100f, true);
             jumpState = Jump.GROUNDED;
             velocity.y=0;
-            //System.out.println("Landed, character is now " + jumpState);
-=======
-            body.applyForceToCenter(0, 100f, true);
-            jumping = Jump.GROUNDED;
-            velocity.y=0;
-            System.out.println("Landed, character is now " + jumping + " and bodyposition = " + body.getPosition().y);
->>>>>>> 8872e01441e5c94cf504a7698e2230fcf0649f38
+            System.out.println("Landed, character is now " + jumpState + " and bodyposition = " + body.getPosition().y);
         }
     }
 
