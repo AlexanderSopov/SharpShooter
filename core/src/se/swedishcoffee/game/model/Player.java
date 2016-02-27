@@ -21,7 +21,7 @@ public class Player extends Entity {
     //flags
     private float powerSpeed = 1;
     private float jumpingTimer = 0;
-    private Jump jumping = Jump.GROUNDED;
+    private Jump jumpState = Jump.GROUNDED;
     private boolean moveLeft = false;
     private boolean moveRight = false;
 
@@ -55,7 +55,9 @@ public class Player extends Entity {
 
 
         // Left/right movement
-        if (moveLeft)
+        if (moveRight && moveLeft && jumpState == Jump.GROUNDED)
+            velocity.x = 0;
+        else if (moveLeft)
             velocity.x= -WALKSPEED*powerSpeed;
         else if (moveRight)
             velocity.x = WALKSPEED*powerSpeed;
@@ -63,19 +65,21 @@ public class Player extends Entity {
             velocity.x = 0;
 
 
+
+
         //jump mechanics
-        if (jumping == Jump.JUMPING) {
-            System.out.println("character is " + jumping);
+        if (jumpState == Jump.JUMPING) {
+            //System.out.println("character is " + jumpState);
             jumpingTimer += delta;
             velocity.y = jumpFunction();
 
-            if (jumpingTimer > 0.5) {
-                jumping = Jump.FALLING;
-                System.out.println("Maxed out jumping, now " + jumping);
+            if (jumpingTimer > 0.4) {
+                jumpState = Jump.FALLING;
+                //System.out.println("Maxed out jumpState, now " + jumpState);
                 jumpingTimer = 0;
             }
         }
-        if (jumping == Jump.FALLING)
+        if (jumpState == Jump.FALLING)
             temporaryFallingFunction();
 
         checkForCollisions();
@@ -127,12 +131,13 @@ public class Player extends Entity {
 
     @Override
     public void powerSpeed(boolean on) {
-        if (on){
-            powerSpeed = POWERSPEED;
-            velocity.x *= POWERSPEED;
-        }
-        else {
-            velocity.x /= POWERSPEED;
+        if (on) {
+            if (jumpState == Jump.GROUNDED) {
+                powerSpeed = POWERSPEED;
+                //velocity.x *= POWERSPEED;
+            }
+        }else {
+            //velocity.x /= POWERSPEED;
             powerSpeed = 1;
         }
 
@@ -143,18 +148,18 @@ public class Player extends Entity {
     @Override
     public void jump(boolean active) {
         if (active)
-            if(jumping == Jump.GROUNDED)
-                jumping = Jump.JUMPING;
+            if(jumpState == Jump.GROUNDED)
+                jumpState = Jump.JUMPING;
         if (!active)
-            if (jumping == Jump.JUMPING) {
-                jumping = Jump.FALLING;
+            if (jumpState == Jump.JUMPING) {
+                jumpState = Jump.FALLING;
                 jumpingTimer = 0;
-                System.out.println("Released W, now character is " + jumping);
+                //System.out.println("Released W, now character is " + jumpState);
             }
     }
 
     private float jumpFunction() {
-        return JUMPSPEED * (1+Math.abs(velocity.x)*0.01f) *(float)Math.sin(0.5+(jumpingTimer*3.14)/3);
+        return JUMPSPEED * (Math.max(0.7f, Math.abs(velocity.x)*0.03f)) *(float)Math.sin(0.6+(jumpingTimer*3.14)/4);
     }
 
 
@@ -162,9 +167,9 @@ public class Player extends Entity {
         velocity.y -= 5;
         if (position.y < 10){
             position.y = 10;
-            jumping = Jump.GROUNDED;
+            jumpState = Jump.GROUNDED;
             velocity.y=0;
-            System.out.println("Landed, character is now " + jumping);
+            //System.out.println("Landed, character is now " + jumpState);
         }
     }
 
