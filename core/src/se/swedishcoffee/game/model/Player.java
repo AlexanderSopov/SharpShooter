@@ -1,10 +1,10 @@
 package se.swedishcoffee.game.model;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
@@ -19,7 +19,7 @@ public class Player extends Actor {
     private Controller controller;
 
     //Constants
-    private static final float JUMPSPEED = 50;
+    private static final float JUMPSPEED = 150;
     private static final float WALKSPEED = 30;
     private static final float POWERSPEED = 2.2f;
 
@@ -31,6 +31,12 @@ public class Player extends Actor {
     private boolean moveLeft = false;
     private boolean moveRight = false;
     private Body body;
+    Fixture standingfixture;
+    Fixture duckingfixture;
+
+
+    //Fields
+    Box2DDebugRenderer debugRenderer;
 
 
     /*
@@ -40,7 +46,7 @@ public class Player extends Actor {
     *
      */
     public Player(World world){
-        this(30, 50, 5, 10, world);
+        this(30, 50, 2, 4, world);
     }
 
     public Player(float x, float y, float width, float height, World world){
@@ -51,6 +57,7 @@ public class Player extends Actor {
         super(position, size, world);
         controller = new Controller(this);
         Gdx.input.setInputProcessor(controller);
+        debugRenderer = new Box2DDebugRenderer();
     }
 
     protected void initBody(World world) {
@@ -67,11 +74,13 @@ public class Player extends Actor {
         body = world.createBody(bodyDef);
 
         // Now define the dimensions of the physics shape
-        PolygonShape shape = new PolygonShape();
+        PolygonShape shapeLarge = new PolygonShape();
+        PolygonShape shapeSmall = new PolygonShape();
         /* We are a box, so this makes sense, no?
         // Basically set the physics polygon to a box with the same dimensions
         as our sprite//*/
-        shape.setAsBox(size.x, size.y);
+        shapeLarge.setAsBox(size.x, size.y);
+        shapeSmall.setAsBox(size.x, size.y/2);
 
         // FixtureDef is a confusing expression for physical properties
         // Basically this is where you, in addition to defining the shape of the
@@ -82,13 +91,26 @@ public class Player extends Actor {
         //mass
 
         FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
+        fixtureDef.shape = shapeLarge;
         fixtureDef.density = 1f;
+        fixtureDef.friction = 0;
 
-        Fixture fixture = body.createFixture(fixtureDef);
+        standingfixture = body.createFixture(fixtureDef);
+
+
+
+        FixtureDef newFixtureDef = new FixtureDef();
+        newFixtureDef.shape = shapeSmall;
+        newFixtureDef.density = 2f;
+        fixtureDef.friction = 0;
+
+        duckingfixture = body.createFixture(newFixtureDef);
+        body.getFixtureList().removeValue(duckingfixture, true);
 
         // Shape is the only disposable of the lot, so get rid of it
-        shape.dispose();
+        shapeSmall.dispose();//*/
+        // Shape is the only disposable of the lot, so get rid of it
+        shapeLarge.dispose();
     }
 
 
@@ -97,32 +119,32 @@ public class Player extends Actor {
         updateVelocity(delta);
         // Now update the spritee position accordingly to it's now updated
         //Physics body
-        position = new Vector2(body.getPosition().x, body.getPosition().y);
-        temporaryFallingFunction();
+        //position = new Vector2(body.getPosition());
         //System.out.println(String.format("updating Player, position.x = %f, position.y = %f", position.x, position.y));
 
     }
 
     private void updateVelocity(float delta) {
         // Left/right movement
+
+        Vector2 pos = body.getPosition();
         if (moveRight && moveLeft && jumpState == Jump.GROUNDED)
             body.setLinearVelocity(0, body.getLinearVelocity().y);
         else if (moveLeft)
-            body.applyForceToCenter(-WALKSPEED * powerSpeed, 0, true);
+            body.applyLinearImpulse(-WALKSPEED * powerSpeed, 0, pos.x, pos.y, true);
         else if (moveRight)
-            body.applyForceToCenter(WALKSPEED*powerSpeed, 0, true);
+            body.applyLinearImpulse(WALKSPEED * powerSpeed, 0, pos.x, pos.y, true);
         else
             body.setLinearVelocity(0, body.getLinearVelocity().y);
         //*/
-
-
 
         //jump mechanics
 
         if (jumpState == Jump.JUMPING) {
             //System.out.println("character is " + jumping);
             jumpingTimer += delta;
-            body.applyForceToCenter(0, jumpFunction(),true);
+            //body.applyForceToCenter(0, jumpFunction(),true);
+            body.applyLinearImpulse(new Vector2(0,jumpFunction()), body.getPosition(),true);
             if (jumpingTimer > 0.5) {
                 jumpState = Jump.FALLING;
                 //System.out.println("Maxed out jumping, now " + jumping);
@@ -130,17 +152,17 @@ public class Player extends Actor {
             }
         }
         if (jumpState == Jump.FALLING)
-            temporaryFallingFunction();
+            if (Math.abs(body.getLinearVelocity().y) < 0.1f)
+                jumpState = Jump.GROUNDED;
+
 
     }
 
 
 
     @Override
-    public void render(float delta, ShapeRenderer renderer) {
-        renderer.begin(ShapeRenderer.ShapeType.Filled);
-        renderer.setColor(com.badlogic.gdx.graphics.Color.BLACK);
-        renderer.rect(body.getPosition().x, body.getPosition().y, size.x, size.y);
+    public void render(World world, com.badlogic.gdx.graphics.Camera camera) {
+        debugRenderer.render(world, camera.combined);
     }
 
 
@@ -160,10 +182,15 @@ public class Player extends Actor {
 
     @Override
     public void duck(boolean active) {
-        if (active)
-            size.y /=2;
-        else
-            size.y *=2;
+
+        if (active) {
+            body.getFixtureList().removeValue(standingfixture, true);
+            body.getFixtureList().add(duckingfixture);
+
+        }else {
+            body.getFixtureList().removeValue(duckingfixture, true);
+            body.getFixtureList().add(standingfixture);
+        }
     }
 
     @Override
@@ -209,16 +236,6 @@ public class Player extends Actor {
         return JUMPSPEED * (Math.max(0.7f, Math.abs(velocity.x)*0.03f)) *(float)Math.sin(0.6+(jumpingTimer*3.14)/4);
     }
 
-
-    private void temporaryFallingFunction() {
-        //velocity.y -= 5;
-        if (position.y < 10){
-            body.applyForceToCenter(0, 100f, true);
-            jumpState = Jump.GROUNDED;
-            velocity.y=0;
-            System.out.println("Landed, character is now " + jumpState + " and bodyposition = " + body.getPosition().y);
-        }
-    }
 
     private enum Jump {
         GROUNDED, JUMPING, FALLING

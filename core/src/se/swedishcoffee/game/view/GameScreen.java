@@ -9,6 +9,7 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 
 import se.swedishcoffee.game.model.Player;
+import se.swedishcoffee.game.model.Tile;
 
 /**
  * Created by Alex on 16-02-16.
@@ -16,9 +17,12 @@ import se.swedishcoffee.game.model.Player;
 public class GameScreen implements Screen {
 
     private static final float WORLD_SIZE = 100f;
+    private static final float TIME_STEP = 1f/45f;
     ShapeRenderer renderer;
     ExtendViewport viewport;
     Player player;
+    Tile ground;
+    Tile platform;
     World world;
     private float physicsDelta;
 
@@ -31,6 +35,8 @@ public class GameScreen implements Screen {
         //passed in is gravity
         world = new World(new Vector2(0, -9.8f), false);
         player = new Player(world);
+        ground = new Tile(world);
+        platform = new Tile(120,15,50,5,world);
         viewport = new ExtendViewport(WORLD_SIZE, WORLD_SIZE);
         physicsDelta = 0;
 
@@ -38,24 +44,30 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta){
-        viewport.apply(true);
-        Gdx.gl.glClearColor(1, 1, 1, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        updateWorld(delta);
 
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+
+        viewport.apply(true);
         renderer.setProjectionMatrix(viewport.getCamera().combined);
-        player.render(delta, renderer);
+        player.render(world, viewport.getCamera());
         renderer.end();
 
+        updateWorld(delta);
 
     }
 
     private void updateWorld(float delta) {
-        physicsDelta += delta;
-        if (physicsDelta > 1/60){
-            world.step(physicsDelta, 6, 2);
-            player.update(physicsDelta);
-            physicsDelta = 0;
+        float frameTime = Math.min(delta, 0.25f);
+        physicsDelta += frameTime;
+
+        while (physicsDelta >= TIME_STEP){
+            //System.out.println("Before minus " + physicsDelta);
+            world.step(TIME_STEP, 6, 2);
+            player.update(TIME_STEP);
+            physicsDelta -= TIME_STEP;
+            //System.out.println("After minus " + physicsDelta);
         }
     }
 
