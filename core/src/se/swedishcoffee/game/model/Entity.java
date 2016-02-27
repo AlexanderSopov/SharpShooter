@@ -2,34 +2,34 @@ package se.swedishcoffee.game.model;
 
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.World;
 
 /**
  * Created by Alex on 16-02-16.
  */
 public abstract class Entity {
     Vector2 position, size, velocity;
+    protected Body body;
 
-    public Entity(){
-        this(0,0,10,10);
+    public Entity(World world){
+        this(0,0,10,10, world);
     }
 
-    public Entity(float x, float y, float width, float height){
-        this(new Vector2(x,y), new Vector2(width, height));
+    public Entity(float x, float y, float width, float height, World world){
+        this(new Vector2(x,y), new Vector2(width, height), world);
     }
 
-    public Entity(Vector2 position, Vector2 size){
+    public Entity(Vector2 position, Vector2 size, World world){
         this.position = position;
         this.size = size;
         velocity = new Vector2(0,0);
+        initBody(world);
     }
 
-    abstract public void moveLeft(boolean active);
-    abstract public void moveRight(boolean active);
-    abstract public void jump(boolean active);
-    abstract public void duck(boolean active);
-    abstract public void attack(Vector2 direction);
-    abstract public void defensiveMove();
-    abstract public void powerSpeed(boolean on);
+    protected abstract void initBody(World world);
+
+
     public abstract void render(float delta, ShapeRenderer renderer);
     abstract public void update(float delta);
 
