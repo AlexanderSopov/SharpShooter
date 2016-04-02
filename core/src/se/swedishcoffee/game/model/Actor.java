@@ -25,7 +25,7 @@ public abstract class Actor extends Entity {
     abstract public void moveRight(boolean active);
     abstract public void jump(boolean active);
     abstract public void duck(boolean active);
-    abstract public void attack(Vector2 direction);
+    abstract public void attack(Vector2 direction, boolean active);
     abstract public void defensiveMove();
     abstract public void powerSpeed(boolean on);
 }

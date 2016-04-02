@@ -33,28 +33,29 @@ public class GameScreen implements Screen {
         renderer.setAutoShapeType(true);
         // Create a physics world, the heart of the simulation.  The Vector
         //passed in is gravity
-        world = new World(new Vector2(0, -9.8f), false);
-        player = new Player(world);
+        world = new World(new Vector2(0, -9.8f*5), false);
+        viewport = new ExtendViewport(WORLD_SIZE, WORLD_SIZE);
+        player = new Player(world, viewport);
         ground = new Tile(world);
         platform = new Tile(120,15,50,5,world);
-        viewport = new ExtendViewport(WORLD_SIZE, WORLD_SIZE);
         physicsDelta = 0;
-
     }
 
     @Override
     public void render(float delta){
+        updateWorld(delta);
+        viewport.apply(true);
+
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 
-        viewport.apply(true);
         renderer.setProjectionMatrix(viewport.getCamera().combined);
-        player.render(world, viewport.getCamera());
+        renderer.begin(ShapeRenderer.ShapeType.Filled);
+        player.render(world, viewport.getCamera(), renderer);
         renderer.end();
 
-        updateWorld(delta);
 
     }
 

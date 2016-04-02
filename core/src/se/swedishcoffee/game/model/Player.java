@@ -1,7 +1,10 @@
 package se.swedishcoffee.game.model;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
@@ -9,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import se.swedishcoffee.game.control.Controller;
 
@@ -16,7 +20,11 @@ import se.swedishcoffee.game.control.Controller;
  * Created by Alex on 16-02-16.
  */
 public class Player extends Actor {
+
+    //Members
+    private final AimCross aimCross;
     private Controller controller;
+    private Viewport viewport;
 
     //Constants
     private static final float JUMPSPEED = 150;
@@ -27,7 +35,7 @@ public class Player extends Actor {
     //flags
     private float powerSpeed = 1;
     private float jumpingTimer = 0;
-    private Jump jumpState = Jump.GROUNDED;
+    private States state = States.GROUNDED;
     private boolean moveLeft = false;
     private boolean moveRight = false;
     private Body body;
@@ -36,6 +44,7 @@ public class Player extends Actor {
 
 
     //Fields
+    float shootAngle;
     Box2DDebugRenderer debugRenderer;
 
 
@@ -45,17 +54,19 @@ public class Player extends Actor {
     *
     *
      */
-    public Player(World world){
-        this(30, 50, 2, 4, world);
+    public Player(World world, Viewport viewport){
+        this(30, 50, 1, 2, world, viewport);
     }
 
-    public Player(float x, float y, float width, float height, World world){
-        this(new Vector2(x, y), new Vector2(width, height), world);
+    public Player(float x, float y, float width, float height, World world, Viewport viewport){
+        this(new Vector2(x, y), new Vector2(width, height), world, viewport);
     }
 
-    public Player(Vector2 position, Vector2 size, World world){
+    public Player(Vector2 position, Vector2 size, World world,Viewport viewport){
         super(position, size, world);
-        controller = new Controller(this);
+        aimCross = new AimCross(viewport.getCamera());
+        this.viewport = viewport;
+        controller = new Controller(this, aimCross);
         Gdx.input.setInputProcessor(controller);
         debugRenderer = new Box2DDebugRenderer();
     }
@@ -69,6 +80,7 @@ public class Player extends Actor {
         //is 1 pixel
         // Set our body to the same position as our sprite
         bodyDef.position.set(position.x, position.y);
+        bodyDef.fixedRotation = true;
 
         // Create a body in the world using our definition
         body = world.createBody(bodyDef);
@@ -114,46 +126,52 @@ public class Player extends Actor {
     }
 
 
-    //update
-    public void update(float delta){
-        updateVelocity(delta);
-        // Now update the spritee position accordingly to it's now updated
-        //Physics body
-        //position = new Vector2(body.getPosition());
-        //System.out.println(String.format("updating Player, position.x = %f, position.y = %f", position.x, position.y));
-
-    }
-
-    private void updateVelocity(float delta) {
+    public void update(float delta) {
         // Left/right movement
 
         Vector2 pos = body.getPosition();
-        if (moveRight && moveLeft && jumpState == Jump.GROUNDED)
+        if (moveRight && moveLeft && state == States.GROUNDED)
             body.setLinearVelocity(0, body.getLinearVelocity().y);
         else if (moveLeft)
-            body.applyLinearImpulse(-WALKSPEED * powerSpeed, 0, pos.x, pos.y, true);
+            body.setLinearVelocity(-WALKSPEED * powerSpeed, body.getLinearVelocity().y);
         else if (moveRight)
-            body.applyLinearImpulse(WALKSPEED * powerSpeed, 0, pos.x, pos.y, true);
+            body.setLinearVelocity(WALKSPEED * powerSpeed, body.getLinearVelocity().y);
         else
             body.setLinearVelocity(0, body.getLinearVelocity().y);
-        //*/
 
-        //jump mechanics
 
-        if (jumpState == Jump.JUMPING) {
+        //Attack
+        /*
+        if (state == States.JUMPING) {
             //System.out.println("character is " + jumping);
             jumpingTimer += delta;
             //body.applyForceToCenter(0, jumpFunction(),true);
-            body.applyLinearImpulse(new Vector2(0,jumpFunction()), body.getPosition(),true);
+            body.setLinearVelocity(body.getLinearVelocity().x,jumpFunction());
             if (jumpingTimer > 0.5) {
-                jumpState = Jump.FALLING;
+                state = States.FALLING;
+                //System.out.println("Maxed out jumping, now " + jumping);
+                jumpingTimer = 0;
+            }
+        }//*/
+
+
+        //*/
+        //jump mechanics
+
+        if (state == States.JUMPING) {
+            //System.out.println("character is " + jumping);
+            jumpingTimer += delta;
+            //body.applyForceToCenter(0, jumpFunction(),true);
+            body.setLinearVelocity(body.getLinearVelocity().x,jumpFunction());
+            if (jumpingTimer > 0.5) {
+                state = States.FALLING;
                 //System.out.println("Maxed out jumping, now " + jumping);
                 jumpingTimer = 0;
             }
         }
-        if (jumpState == Jump.FALLING)
+        if (state == States.FALLING)
             if (Math.abs(body.getLinearVelocity().y) < 0.1f)
-                jumpState = Jump.GROUNDED;
+                state = States.GROUNDED;
 
 
     }
@@ -161,8 +179,10 @@ public class Player extends Actor {
 
 
     @Override
-    public void render(World world, com.badlogic.gdx.graphics.Camera camera) {
+    public void render(World world, Camera camera, ShapeRenderer renderer) {
+        aimCross.render(renderer);
         debugRenderer.render(world, camera.combined);
+
     }
 
 
@@ -173,29 +193,44 @@ public class Player extends Actor {
     @Override
     public void moveLeft(boolean pressed) {
         moveLeft = pressed;
+        if(state == States.SHOOTING)
+            moveLeft = false;
     }
 
     @Override
     public void moveRight(boolean pressed) {
         moveRight = pressed;
+        if(state == States.SHOOTING)
+            moveRight = false;
     }
 
     @Override
     public void duck(boolean active) {
-
+        PolygonShape shape = (PolygonShape)standingfixture.getShape();
         if (active) {
-            body.getFixtureList().removeValue(standingfixture, true);
-            body.getFixtureList().add(duckingfixture);
-
+            shape.setAsBox(size.x, size.y/2);
         }else {
-            body.getFixtureList().removeValue(duckingfixture, true);
-            body.getFixtureList().add(standingfixture);
+            shape.setAsBox(size.x, size.y);
         }
+        //shape.dispose();
     }
 
     @Override
-    public void attack(Vector2 direction) {
+    public void attack(Vector2 direction, boolean active) {
+        if (active && state == States.GROUNDED)
+            shoot(new Vector3(direction.x,direction.y,0));
+        else if (!active && state == States.SHOOTING)
+            state = States.GROUNDED;
+    }
 
+    private void shoot(Vector3 direction) {
+        state = States.SHOOTING;
+        Vector3 v3 = viewport.getCamera().unproject(direction)
+                .sub(position.x, position.y,0);
+        Vector2 v = new Vector2(v3.x, v3.y);
+        shootAngle = v.angle();
+        moveLeft = false;
+        moveRight= false;
     }
 
     @Override
@@ -206,7 +241,7 @@ public class Player extends Actor {
     @Override
     public void powerSpeed(boolean on) {
         if (on) {
-            if (jumpState == Jump.GROUNDED) {
+            if (state == States.GROUNDED) {
                 powerSpeed = POWERSPEED;
                 //velocity.x *= POWERSPEED;
             }
@@ -222,23 +257,25 @@ public class Player extends Actor {
     @Override
     public void jump(boolean active) {
         if (active)
-            if(jumpState == Jump.GROUNDED)
-                jumpState = Jump.JUMPING;
+            if(state == States.GROUNDED)
+                state = States.JUMPING;
         if (!active)
-            if (jumpState == Jump.JUMPING) {
-                jumpState = Jump.FALLING;
+            if (state == States.JUMPING) {
+                state = States.FALLING;
                 jumpingTimer = 0;
-                //System.out.println("Released W, now character is " + jumpState);
+                //System.out.println("Released W, now character is " + state);
             }
     }
 
     private float jumpFunction() {
-        return JUMPSPEED * (Math.max(0.7f, Math.abs(velocity.x)*0.03f)) *(float)Math.sin(0.6+(jumpingTimer*3.14)/4);
+        return 30f;
+        //return JUMPSPEED * (Math.max(0.3f, Math.abs(velocity.x)*0.001f)) *(float)Math.sin(0.6+(jumpingTimer*3.14)/4);
     }
 
 
-    private enum Jump {
-        GROUNDED, JUMPING, FALLING
+
+    private enum States {
+        GROUNDED, JUMPING, FALLING, SHOOTING
     }
 
 }

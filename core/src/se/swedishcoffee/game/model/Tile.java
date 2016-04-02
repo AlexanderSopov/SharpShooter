@@ -1,6 +1,7 @@
 package se.swedishcoffee.game.model;
 
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
@@ -45,7 +46,7 @@ public class Tile extends Entity {
     }
 
     @Override
-    public void render(World world, Camera camera) {
+    public void render(World world, Camera camera, ShapeRenderer renderer) {
 
     }
 

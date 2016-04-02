@@ -1,5 +1,7 @@
 package se.swedishcoffee.game.model;
 
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.World;
@@ -29,7 +31,7 @@ public abstract class Entity {
     protected abstract void initBody(World world);
 
 
-    public abstract void render(World world, com.badlogic.gdx.graphics.Camera camera);
+    public abstract void render(World world, Camera camera, ShapeRenderer renderer);
     abstract public void update(float delta);
 
     public Vector2 getPosition() {
